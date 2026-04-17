@@ -1,8 +1,11 @@
 package errors
 
 import (
+	"context"
 	"errors"
 
+	applogger "github.com/hungp29/x-common/logger"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -15,10 +18,18 @@ func ToGRPC(err error) error {
 
 	var appErr *AppError
 	if errors.As(err, &appErr) {
-		return status.Error(mapCode(appErr.Code), appErr.Message)
+		st := status.New(mapCode(appErr.Code), appErr.Message)
+		info := &errdetails.ErrorInfo{
+			Reason: appErr.Reason,
+		}
+
+		st, _ = st.WithDetails(info)
+		return st.Err()
 	}
 
 	// unknown error
+	applogger.Error(context.Background(), "unknown error", "error", err.Error())
+	// return generic internal error to avoid leaking details
 	return status.Error(codes.Internal, "internal server error")
 }
 
@@ -34,6 +45,10 @@ func mapCode(code Code) codes.Code {
 		return codes.PermissionDenied
 	case CodeConflict:
 		return codes.AlreadyExists
+	case CodeResourceExhausted:
+		return codes.ResourceExhausted
+	case CodePermissionDenied:
+		return codes.PermissionDenied
 	default:
 		return codes.Internal
 	}

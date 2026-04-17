@@ -4,13 +4,10 @@ import (
 	"context"
 	"sync"
 
+	appcontext "github.com/hungp29/x-common/context"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
-
-type contextKey string
-
-const loggerKey contextKey = "logger"
 
 var (
 	defaultFallback *zap.Logger
@@ -21,6 +18,7 @@ func defaultOutLogger() *zap.Logger {
 	fallbackOnce.Do(func() {
 		cfg := zap.NewProductionConfig()
 		cfg.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
+		cfg.DisableCaller = true
 		l, err := cfg.Build()
 		if err != nil {
 			defaultFallback = zap.NewNop()
@@ -31,14 +29,9 @@ func defaultOutLogger() *zap.Logger {
 	return defaultFallback
 }
 
-// With attaches a request-scoped logger to the context.
-func With(ctx context.Context, l *zap.Logger) context.Context {
-	return context.WithValue(ctx, loggerKey, l)
-}
-
 // From returns the logger from ctx, or a JSON info-level stdout logger if none was set.
 func From(ctx context.Context) *zap.Logger {
-	if l, ok := ctx.Value(loggerKey).(*zap.Logger); ok && l != nil {
+	if l, ok := appcontext.Logger(ctx); ok && l != nil {
 		return l
 	}
 	return defaultOutLogger()
