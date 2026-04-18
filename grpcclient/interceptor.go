@@ -3,6 +3,7 @@ package grpcclient
 import (
 	"context"
 
+	appcontext "github.com/hungp29/x-common/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -10,8 +11,8 @@ import (
 // UnaryClientInterceptor propagates user_id and correlation_id from context into outgoing metadata.
 func UnaryClientInterceptor() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		userID := UserIDFromContext(ctx)
-		correlationID := CorrelationIDFromContext(ctx)
+		userID, _ := appcontext.UserID(ctx)
+		correlationID, _ := appcontext.CorrelationID(ctx)
 
 		md := metadata.New(map[string]string{})
 		if userID != "" {
